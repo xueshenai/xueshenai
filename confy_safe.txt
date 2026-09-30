@@ -1,0 +1,31 @@
+{
+ "app":{  "speed": 250,  "version": 333.2  },
+ "stun":{  "host":"stun.l.google.com",  "match":"ashod.site",  "pause":15000  },
+ "twilio":{
+  "sip":{   "host":"sip.twilio.com",   "domain":"xueshein.sip.sydney.twilio.com",
+   "user":"100",   "pass":"********************",   "agent":"xueshein"   }
+  },
+ "translate":{  "host":"clients5.google.com"  },
+ "deepgram":{
+  "key":"****************************************",
+  "endpoint":"api.deepgram.com",
+  "keepalive":8000,
+  "defaults":{   "model":"nova-3"   }
+  },
+ "fish":{
+  "key":"********************************",
+  "endpoint":"api.fish.audio",
+  "defaults":{  "model":"s2-pro",   "temperature":0.5,   "voiceid":"d36061db5db44106a977a6ab9974fa10" }
+  },
+ "claude":{
+  "key":"************************************************************************************************************",
+  "endpoint":"api.anthropic.com",
+  "defaults":{   "model":"claude-haiku-4-5",   "temperature":0.8,   "max_tokens":500,
+  "system_prompt":"Never ask if I am still here or tell me that you are still here, assume that I am. Keep all your to 10 words at most."
+   }
+  },
+ "server":{  "max_calls":24,  "port":8082  },
+ "voip":{  "delay":19000,  "frame_size":160,  "codec":"ulaw"  }
+}
+
+
