@@ -1,0 +1,36 @@
+/*-----------------------------------------------------------------------*/
+ #include <windows.h>
+/*-----------------------------------------------------------------------*/
+
+ 1000 ICON                             "stuff/5747.ico"
+ 1001 ICON                             "stuff/5752.ico"
+
+
+ VS_VERSION_INFO                       VERSIONINFO
+ FILEVERSION                           0,0,0,1
+ PRODUCTVERSION                        0,0,0,1
+ FILEFLAGSMASK                         VS_FFI_FILEFLAGSMASK
+ FILEFLAGS                             VS_FF_PRERELEASE
+ FILEOS                                VOS__WINDOWS32
+ FILETYPE                              VFT_APP
+ FILESUBTYPE                           VFT2_UNKNOWN
+
+ BEGIN
+ BLOCK "StringFileInfo"
+ BEGIN
+ BLOCK "000004b0"
+ BEGIN
+ VALUE "ProductName",                  "xueshen.online Server"
+ VALUE "ProductVersion",               "0,0,0,1"
+ VALUE "FileDescription",              ""
+ VALUE "FileVersion",                  "0,0,0,1"
+ VALUE "CompanyName",                  "xueshen LLC"
+ VALUE "LegalCopyright",               "xueshen LLC"
+ VALUE "Comments",                     "Developed by Ashod Apakian"
+ END
+ END
+ BLOCK "VarFileInfo"
+ BEGIN
+ VALUE "Translation",                  0x000,0x4b0
+ END
+ END
