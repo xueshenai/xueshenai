@@ -49,7 +49,7 @@ you're compiling on rather than a more generic CPU.
  H aa_user_line_executed               =0;
  B aa_user_info_executed[5]            ={0,0,0,0,0};
 
- #define aa_VERSION                    350
+ #define aa_VERSION                    351
 
 /*-----------------------------------------------------------------------*/
 
@@ -2371,6 +2371,8 @@ _output_error:
  { "mov",  "video/quicktime" },
  { "",     "" }
  };
+
+
 
 
 /*-----------------------------------------------------------------------*/
@@ -88906,6 +88908,325 @@ CP parse_string_raw                    (Parser*ps)
   }
  return RET_YES;
  }
+
+
+
+/*------------------------------------------------------------------------*/
+
+
+
+
+ B aaMsgpackNew                        (_msgpack*msgpack)
+ {
+ B ret;
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ aaMemoryFill(msgpack,sizeof(_msgpack),0);
+ msgpack->magic=aaHPP(aaMsgpackNew);
+ if((ret=aaMemoryUnitAllocate(&msgpack->mun,msgpack->mun.bytes+_4K))!=YES) { oops; }
+ return RET_YES;
+ }
+
+
+
+
+ B aaMsgpackDelete                     (_msgpack*msgpack)
+ {
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ aaMemoryUnitRelease(&msgpack->mun);
+ aaMemoryFill(msgpack,sizeof(_msgpack),0);
+ return RET_YES;
+ }
+
+
+
+ B aaMsgpackReset                      (_msgpack*msgpack)
+ {
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ msgpack->mun.used=0;
+ return RET_YES;
+ }
+
+
+
+
+ B aaMsgpackReAlloc                    (_msgpack*msgpack,H thresh,H toadd)
+ {
+ B ret;
+ H left;
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ if(thresh) {}
+ left=msgpack->mun.bytes-msgpack->mun.used;
+ if(left<(toadd))
+  {
+  if((ret=aaMemoryUnitReAllocate(&msgpack->mun,msgpack->mun.bytes+toadd))!=YES) { oops; }
+  left=msgpack->mun.bytes-msgpack->mun.used;
+  }
+ return RET_YES;
+ }
+
+
+
+ B aaMsgpackAppend                     (_msgpack*msgpack,H bytes,VP buf)
+ {
+ B ret;
+ BP bp;
+ H i;
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ if(bytes==0) { aaStringLen(buf,&bytes); }
+ bp=(BP)buf;
+ for(i=0;i<bytes;i++)
+  {
+  if((ret=aaMsgpackReAlloc(msgpack,100,(msgpack->mun.bytes/4)+_4K))!=YES) { oops; }
+  msgpack->mun.mem[msgpack->mun.used]=bp[i];
+  msgpack->mun.used++;
+  }
+ return RET_YES;
+ }
+
+
+
+ B aaMsgpackAppendByte                 (_msgpack*msgpack,B val)
+ {
+ return(aaMsgpackAppend(msgpack,1,&val));
+ }
+
+
+
+ B aaMsgpackAppendNil                  (_msgpack*msgpack)
+ {
+ return(aaMsgpackAppendByte(msgpack,0xc0));
+ }
+
+
+
+ B aaMsgpackAppendBool                 (_msgpack*msgpack,B val)
+ {
+ if(val) { return(aaMsgpackAppendByte(msgpack,0xc3)); }
+ else    { return(aaMsgpackAppendByte(msgpack,0xc2)); }
+ }
+
+
+
+ B aaMsgpackAppendInt                  (_msgpack*msgpack,H size,H val)
+ {
+ B ret;
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ if((ret=aaMsgpackAppendByte(msgpack,0xce))!=YES) { oops; return ret; }
+ val=aaNumSwapDword(val);
+ if((ret=aaMsgpackAppend(msgpack,4,&val))!=YES) { oops; return ret; }
+ if(size) {}
+ return RET_YES;
+ }
+
+
+
+
+ B aaMsgpackAppendBin                  (_msgpack*msgpack,H size,H bytes,VP buf)
+ {
+ B ret;
+ BP bp;
+ H i,len;
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ switch(size)
+  {
+  default: oof;  return RET_FAILED;
+
+  case 1: // bin8
+  if((ret=aaMsgpackAppendByte(msgpack,0xc4))!=YES) { oops; return ret; }
+  len=bytes;
+  if((ret=aaMsgpackAppend(msgpack,size,&len))!=YES) { oops; return ret; }
+  break;
+
+  case 2: // bin16
+  if((ret=aaMsgpackAppendByte(msgpack,0xc5))!=YES) { oops; return ret; }
+  len=aaNumSwapWord(bytes);
+  if((ret=aaMsgpackAppend(msgpack,size,&len))!=YES) { oops; return ret; }
+  break;
+
+  case 4: // bin32
+  if((ret=aaMsgpackAppendByte(msgpack,0xc6))!=YES) { oops; return ret; }
+  len=aaNumSwapDword(bytes);
+  if((ret=aaMsgpackAppend(msgpack,size,&len))!=YES) { oops; return ret; }
+  break;
+  }
+ bp=(BP)buf;
+ for(i=0;i<bytes;i++)
+  {
+  if((ret=aaMsgpackReAlloc(msgpack,100,(msgpack->mun.bytes/4)+_32K))!=YES) { oops; }
+  msgpack->mun.mem[msgpack->mun.used]=bp[i];
+  msgpack->mun.used++;
+  }
+ return RET_YES;
+ }
+
+
+
+
+ B aaMsgpackAppendMap16                (_msgpack*msgpack,H length)
+ {
+ B ret;
+ W len;
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ if((ret=aaMsgpackAppendByte(msgpack,0xde))!=YES) { oops; }
+ len=(W)length;
+ len=aaNumSwapWord(len);
+ if((ret=aaMsgpackAppend(msgpack,2,&len))!=YES) { oops; }
+ return RET_YES;
+ }
+
+
+
+
+ B aaMsgpackAppendMap                  (_msgpack*msgpack,H count)
+ {
+ H mc;
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ mc=0x80;
+ mc+=count;
+ return(aaMsgpackAppendByte(msgpack,(B)mc));
+ }
+
+
+
+ B aaMsgpackAppendArray                (_msgpack*msgpack,H count)
+ {
+ H mc;
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ mc=0x90;
+ mc+=count;
+ return(aaMsgpackAppendByte(msgpack,(B)mc));
+ }
+
+
+
+
+ B aaMsgpackAppendFixStrFixStr         (_msgpack*msgpack,VP key,VP fmt,...)
+ {
+ B ret;
+ aaVargsf32K(fmt);
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ if((ret=aaMsgpackAppendFixStr(msgpack,"%s",key))!=YES) { return ret; }
+ ret=aaMsgpackAppendFixStr(msgpack,"%s",str32k.buf);
+ return ret;
+ }
+
+
+
+ B aaMsgpackAppendFixStrFloat          (_msgpack*msgpack,VP key,F val)
+ {
+ B ret;
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ if((ret=aaMsgpackAppendFixStr(msgpack,"%s",key))!=YES) { return ret; }
+ ret=aaMsgpackAppendFloat(msgpack,val);
+ return ret;
+ }
+
+
+
+
+ B aaMsgpackAppendFixStr               (_msgpack*msgpack,VP fmt,...)
+ {
+ B ret;
+ aaVargsf32K(fmt);
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ if((ret=aaMsgpackReAlloc(msgpack,(str32k.len+_1K),(str32k.len+_4K)))!=YES) { oops; }
+ msgpack->mun.mem[msgpack->mun.used]=(0xa0+str32k.len);
+ msgpack->mun.used++;
+ aaMemoryCopy(&msgpack->mun.mem[msgpack->mun.used],str32k.len,str32k.buf);
+ msgpack->mun.used+=str32k.len;
+ return RET_YES;
+ }
+
+
+
+
+ B aaMsgpackAppendStr8                 (_msgpack*msgpack,VP fmt,...)
+ {
+ B ret;
+ aaVargsf32K(fmt);
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ if((ret=aaMsgpackReAlloc(msgpack,(str32k.len+_1K),(str32k.len+_4K)))!=YES) { oops; }
+ msgpack->mun.mem[msgpack->mun.used]=(0xd9);
+ msgpack->mun.used++;
+ msgpack->mun.mem[msgpack->mun.used]=(B)str32k.len;
+ msgpack->mun.used++;
+ aaMemoryCopy(&msgpack->mun.mem[msgpack->mun.used],str32k.len,str32k.buf);
+ msgpack->mun.used+=str32k.len;
+ return RET_YES;
+ }
+
+
+
+
+ B aaMsgpackAppendStr16                (_msgpack*msgpack,VP fmt,...)
+ {
+ B ret;
+ H len;
+ aaVargsf32K(fmt);
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ if((ret=aaMsgpackReAlloc(msgpack,(str32k.len+_1K),(str32k.len+_4K)))!=YES) { oops; }
+ msgpack->mun.mem[msgpack->mun.used]=(0xda);
+ msgpack->mun.used++;
+ len=aaNumSwapWord(str32k.len);
+ if((ret=aaMsgpackAppend(msgpack,2,&len))!=YES) { oops; return ret; }
+ aaMemoryCopy(&msgpack->mun.mem[msgpack->mun.used],str32k.len,str32k.buf);
+ msgpack->mun.used+=str32k.len;
+ return RET_YES;
+ }
+
+
+
+ B aaMsgpackAppendDouble               (_msgpack*msgpack,D val)
+ {
+ B ret;
+ Q temp_val;
+ D result;
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ memcpy(&temp_val,&val,sizeof(D));
+ temp_val=((temp_val&0x00000000000000FFULL)<<56)|((temp_val&0x000000000000FF00ULL)<<40)|
+          ((temp_val&0x0000000000FF0000ULL)<<24)|((temp_val&0x00000000FF000000ULL)<<8) |
+          ((temp_val&0x000000FF00000000ULL)>>8) |((temp_val&0x0000FF0000000000ULL)>>24)|
+          ((temp_val&0x00FF000000000000ULL)>>40)|((temp_val&0xFF00000000000000ULL)>>56);
+ memcpy(&result,&temp_val,sizeof(D));
+ if((ret=aaMsgpackAppendByte(msgpack,0xcb))!=YES) { oops; return ret; }
+ if((ret=aaMsgpackAppend(msgpack,8,&result))!=YES) { oops; return ret; }
+ return RET_YES;
+ }
+
+
+
+
+ B aaMsgpackAppendFloat                (_msgpack*msgpack,F val)
+ {
+ B ret;
+ H temp_val;
+ F result;
+ if(msgpack==NULL) { return RET_MISSINGPARM; }
+ if(msgpack->magic!=aaHPP(aaMsgpackNew)) { return RET_NOTINITIALIZED; }
+ memcpy(&temp_val,&val,sizeof(F));
+ temp_val=((temp_val&0x000000FF)<<24)|((temp_val&0x0000FF00)<<8)|
+          ((temp_val&0x00FF0000)>>8)|((temp_val&0xFF000000)>>24);
+ memcpy(&result,&temp_val,sizeof(F));
+ if((ret=aaMsgpackAppendByte(msgpack,0xca))!=YES) { oops; return ret; }
+ if((ret=aaMsgpackAppend(msgpack,4,&result))!=YES) { oops; return ret; }
+ return RET_YES;
+ }
+
 
 
 

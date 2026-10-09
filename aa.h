@@ -318,9 +318,9 @@
  T L64            *                    GP;
  T H64            *                    QP;
  T void          **                    PP;
- T int                                 Z;
+ T int                                  Z;
  T int            *                    ZP;
- T unsigned int                        Y;
+ T unsigned int                         Y;
  T unsigned int   *                    YP;
 
 
@@ -6770,6 +6770,43 @@ VP aaf                                (VP buf,H off,VP fmt,...);
  B aaDesktopDestroy                    (H handle);
  B aaDesktopStatus                     (H handle,_desktopstatus*desktopstatus);
  B aaDesktopSwitch                     (H handle,B state);
+
+
+/*-----------------------------------------------------------------------*/
+
+ E{ MP_FIXINT=0x01,MP_FIXMAP,MP_FIXARRAY,MP_FIXSTR,MP_NIL,MP_BOOL,MP_BIN,
+ MP_EXT,MP_FLOAT,MP_UINT,MP_INT,MP_FIXEXT,MP_STR,MP_ARRAY,MP_MAP,MP_NEGFIXINT };
+
+
+ structure
+ {
+ H magic;
+ _memoryunit mun;
+ }
+ _msgpack;
+
+
+ B aaMsgpackNew                        (_msgpack*msgpack);
+ B aaMsgpackDelete                     (_msgpack*msgpack);
+ B aaMsgpackReset                      (_msgpack*msgpack);
+ B aaMsgpackReAlloc                    (_msgpack*msgpack,H thresh,H toadd);
+ B aaMsgpackAppend                     (_msgpack*msgpack,H bytes,VP buf);
+ B aaMsgpackAppendByte                 (_msgpack*msgpack,B val);
+ B aaMsgpackAppendNil                  (_msgpack*msgpack);
+ B aaMsgpackAppendBool                 (_msgpack*msgpack,B val);
+ B aaMsgpackAppendInt                  (_msgpack*msgpack,H size,H val);
+ B aaMsgpackAppendBin                  (_msgpack*msgpack,H size,H bytes,VP buf);
+ B aaMsgpackAppendMap                  (_msgpack*msgpack,H count);
+ B aaMsgpackAppendMap16                (_msgpack*msgpack,H length);
+ B aaMsgpackAppendArray                (_msgpack*msgpack,H count);
+ B aaMsgpackAppendFixStrFixStr         (_msgpack*msgpack,VP key,VP fmt,...);
+ B aaMsgpackAppendFixStrFloat          (_msgpack*msgpack,VP key,F val);
+ B aaMsgpackAppendFixStr               (_msgpack*msgpack,VP fmt,...);
+ B aaMsgpackAppendStr8                 (_msgpack*msgpack,VP fmt,...);
+ B aaMsgpackAppendStr16                (_msgpack*msgpack,VP fmt,...);
+ B aaMsgpackAppendDouble               (_msgpack*msgpack,D val);
+ B aaMsgpackAppendFloat                (_msgpack*msgpack,F val);
+
 
 
 /*-----------------------------------------------------------------------*/
